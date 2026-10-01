@@ -17,6 +17,135 @@ Every value in Python has a **type**. The most common built-in types you'll work
 | `bool` | `True` / `False` | Logical values |
 | `NoneType` | `None` | Represents "no value" |
 
+### Primitive vs. Non-Primitive Data Types
+
+Python data types are commonly grouped into two categories.
+
+**Primitive (basic) types** hold a **single, simple value**. They are the basic building blocks of data:
+
+| Type | Example |
+|------|---------|
+| `int` | `42` |
+| `float` | `3.14` |
+| `str` | `"hello"` |
+| `bool` | `True` |
+| `NoneType` | `None` |
+
+**Non-primitive (collection) types** are built from other values and can hold **multiple items** at once:
+
+| Type | Example | Ordered? | Mutable? | Description |
+|------|---------|----------|----------|-------------|
+| `list` | `[1, 2, 3]` | Yes | Yes | A changeable sequence of items |
+| `tuple` | `(1, 2, 3)` | Yes | No | A fixed sequence of items |
+| `dict` | `{"name": "Ana", "age": 20}` | Yes (insertion order) | Yes | Key-value pairs |
+| `set` | `{1, 2, 3}` | No | Yes | Unique items only, no duplicates |
+
+```python
+# Primitive: one value per variable
+age = 25
+name = "Ana"
+
+# Non-primitive: one variable holds many values
+scores = [90, 85, 77]
+student = {"name": "Ana", "age": 25}
+
+scores.append(100)        # lists can be changed after creation
+student["age"] = 26       # dicts can be changed too
+```
+
+**Key differences:**
+
+- **Number of values:** a primitive holds one value; a non-primitive is a container for many.
+- **Mutability:** primitives are **immutable**, so any "change" creates a new value. Most non-primitives (`list`, `dict`, `set`) are **mutable** and can be modified in place. The exception is `tuple`, which is immutable.
+
+> **Note:** Python itself doesn't formally use the terms "primitive" and "non-primitive". Unlike languages such as Java, *everything* in Python is an object, including integers. The distinction is a helpful way to think about simple values versus collections of values.
+
+### Collection Types in Detail
+
+#### `list`: ordered, mutable, duplicates allowed
+
+```python
+items = [10, "apple", 3.5, True, [1, 2]]   # can mix types, even nest lists
+items[0]            # 10 (indexing starts at 0)
+items[-1]           # [1, 2] (negative index counts from the end)
+items[1:3]          # ["apple", 3.5] (slicing)
+items[0] = 99       # OK: lists are mutable
+items.append(7)     # add to the end
+[1, 1, 1]           # duplicates are fine
+```
+
+#### `tuple`: ordered, immutable, duplicates allowed
+
+```python
+point = (3, 4)
+point[0]            # 3 (indexing and slicing work like lists)
+point[0] = 10       # TypeError: 'tuple' object does not support item assignment
+
+single = (5,)       # a one-item tuple NEEDS the trailing comma
+not_tuple = (5)     # this is just the int 5 in parentheses
+x, y = point        # unpacking: x = 3, y = 4
+```
+
+> **Gotcha:** a tuple is immutable, but if it *contains* a mutable item, that item can still change: `t = ([1, 2], 3); t[0].append(9)` works, giving `([1, 2, 9], 3)`. You just can't replace `t[0]` with a different object.
+
+#### `dict`: key-value pairs, mutable, keys are unique
+
+```python
+student = {"name": "Ana", "age": 20}
+student["name"]             # "Ana" (look up by KEY, not by position)
+student["grade"] = "A"      # add a new pair
+student["age"] = 21         # keys are unique, so this overwrites the old value
+student["email"]            # KeyError: the key doesn't exist
+student.get("email")        # None (safe lookup, no error)
+```
+
+**Rules for keys.** A key must be **hashable**, which in practice means **immutable**:
+
+| Allowed as a key | Not allowed as a key |
+|------------------|----------------------|
+| `str`: `{"name": 1}` | `list`: `{[1, 2]: "x"}` |
+| `int`: `{1: "one", 2: "two"}` | `dict`: `{{"a": 1}: "x"}` |
+| `float`: `{3.14: "pi"}` | `set`: `{{1, 2}: "x"}` |
+| `bool`: `{True: "yes"}` | tuple that contains a list: `{([1], 2): "x"}` |
+| `None`: `{None: "empty"}` | |
+| `tuple` of immutables: `{(1, 2): "point"}` | |
+
+```python
+{[1, 2]: "x"}       # TypeError: unhashable type: 'list'
+```
+
+Other things to know about keys:
+
+- **Integer keys are valid**, but they are *labels*, not positions. `d = {10: "a"}` then `d[10]` works, while `d[0]` raises `KeyError`.
+- **Keys of different types are different keys**: `"1"` (string) and `1` (int) are two separate keys.
+- **`1`, `1.0` and `True` count as the same key**, because they are equal and have the same hash: `{1: "a", True: "b"}` becomes `{1: "b"}`.
+- **Duplicate keys are silently overwritten**: `{"a": 1, "a": 2}` becomes `{"a": 2}`.
+- **Values have no restrictions.** They can be any type, including lists or other dicts.
+- Dicts keep **insertion order** (Python 3.7+), but you access items by key, not by index.
+
+#### `set`: unordered, mutable, unique items only
+
+```python
+nums = {1, 2, 2, 3, 3}      # {1, 2, 3}: duplicates are removed automatically
+nums.add(4)                 # OK: sets are mutable
+nums[0]                     # TypeError: sets have no order, so no indexing
+{[1, 2], 3}                 # TypeError: unhashable type: 'list'
+```
+
+- Like dict keys, set items must be **hashable** (immutable). `{1, "a", (1, 2)}` is valid; `{[1, 2]}` is not.
+- **`{}` creates an empty dict, not an empty set.** Use `set()` for an empty set.
+- A common use is removing duplicates: `list(set([1, 1, 2, 3]))` gives `[1, 2, 3]` (the order is not guaranteed).
+
+#### Quick comparison
+
+| | `list` | `tuple` | `dict` | `set` |
+|---|---|---|---|---|
+| Syntax | `[1, 2]` | `(1, 2)` | `{"a": 1}` | `{1, 2}` |
+| Access by | index | index | key | no direct access (loop or `in`) |
+| Duplicates | allowed | allowed | keys unique | not allowed |
+| Mutable | yes | no | yes | yes |
+| Can be a dict key / set item? | no | yes (if its items are immutable) | no | no |
+
 ### Checking a Type
 
 Use the built-in `type()` function to inspect any value:
@@ -49,14 +178,63 @@ message = "Your score is " + str(score)
 
 ### When Conversion Fails
 
-Not every string can be converted. This is a very common source of errors:
+Not every value can be converted to every type. This is a very common source of errors. Here are the main ones:
+
+#### `ValueError`: The value's format is wrong
+
+Raised when the *format* of the input doesn't match what the function expects:
 
 ```python
-int("hello")    # ValueError: invalid literal for int()
-float(None)     # TypeError: float() argument must be a string or a number
+int("hello")           # ValueError: invalid literal for int() with base 10: 'hello'
+int("12.5")            # ValueError: invalid literal for int() with base 10: '12.5'
+float("1.2.3")         # ValueError: could not convert string to float: '1.2.3'
+bool("false")          # bool("false") returns True! ("false" is a non-empty string)
 ```
 
->> Go to the **Exercise 1 (Messy Sensor Data Cleaner)**, you will handle exactly this problem, a list containing values that may or may not be convertible to `float`.
+> **Note:** `bool()` is tricky. It converts *any* value to a boolean based on "truthiness":
+> - Falsy: `False`, `0`, `0.0`, `""`, `[]`, `{}`, `set()`, `None`
+> - Truthy: everything else (including `"false"`, `"0"`, `[0]`)
+>
+> So `bool("false")` is `True`. Use the string `"True"` or `"False"` with `ast.literal_eval()` if you need to parse a boolean from a string.
+
+#### `TypeError`: The type itself is incompatible
+
+Raised when you try to convert a type that Python can't convert, no matter what:
+
+```python
+int(None)              # TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
+float(None)            # TypeError: float() argument must be a string or a number, not 'NoneType'
+int([1, 2, 3])         # TypeError: int() argument must be a string, a bytes-like object or a number, not 'list'
+int({"a": 1})          # TypeError: int() argument must be a string, a bytes-like object or a number, not 'dict'
+str({"a": 1})          # This works, but gives a string representation: "{'a': 1}"
+```
+
+#### Tricky cases
+
+```python
+int(True)              # 1: booleans are integers
+int(False)             # 0
+int(3.99)              # 3: truncates (doesn't round) toward zero
+float("inf")           # inf: special floating-point value
+int(float("inf"))      # OverflowError: cannot convert float infinity to integer
+```
+
+#### Summary table
+
+| Conversion | Success | Failure |
+|---|---|---|
+| `int("123")` | `123` | — |
+| `int("12.5")` | — | `ValueError` (no decimals allowed) |
+| `int("hello")` | — | `ValueError` (invalid format) |
+| `int(None)` | — | `TypeError` (incompatible type) |
+| `float("3.14")` | `3.14` | — |
+| `float("12x")` | — | `ValueError` |
+| `float(None)` | — | `TypeError` |
+| `str(100)` | `"100"` | — |
+| `str(None)` | `"None"` | — |
+| `bool("anything")` | `True` (if non-empty) | — (doesn't fail; uses truthiness) |
+
+>> Go to the **Exercise 1 (Messy Sensor Data Cleaner)**, you will handle exactly this problem: a list containing values that may or may not be convertible to `float`. You'll use `try/except` to catch `ValueError` and `TypeError`.
 
 ---
 
