@@ -808,7 +808,170 @@ print(counts)   # {'Food': 3, 'Transport': 1, 'Entertainment': 1}
 
 ---
 
-## 8. Putting It All Together: Defensive Programming Patterns
+## 8. List Comprehensions
+
+A **list comprehension** is a concise, elegant way to create a new list by transforming or filtering elements from an existing sequence. It's syntactic sugar for a `for` loop — it does the same thing but in a single line.
+
+### Basic Syntax
+
+```python
+[expression for item in sequence]
+```
+
+This is equivalent to:
+
+```python
+result = []
+for item in sequence:
+    result.append(expression)
+```
+
+### Simple Examples: Transform Each Item
+
+```python
+# Multiply each number by 2
+numbers = [1, 2, 3, 4, 5]
+doubled = [x * 2 for x in numbers]
+print(doubled)      # [2, 4, 6, 8, 10]
+
+# Convert each word to uppercase
+words = ["apple", "banana", "cherry"]
+upper_words = [word.upper() for word in words]
+print(upper_words)  # ['APPLE', 'BANANA', 'CHERRY']
+
+# Extract the length of each word
+word_lengths = [len(word) for word in words]
+print(word_lengths) # [5, 6, 6]
+
+# Convert strings to floats
+string_numbers = ["3.14", "2.71", "1.41"]
+floats = [float(s) for s in string_numbers]
+print(floats)       # [3.14, 2.71, 1.41]
+```
+
+### Filtering: Include Only Certain Items
+
+Add an `if` condition to **filter** items:
+
+```python
+[expression for item in sequence if condition]
+```
+
+This is equivalent to:
+
+```python
+result = []
+for item in sequence:
+    if condition:
+        result.append(expression)
+```
+
+**Examples:**
+
+```python
+# Keep only even numbers
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+evens = [x for x in numbers if x % 2 == 0]
+print(evens)        # [2, 4, 6, 8, 10]
+
+# Keep only words longer than 5 characters
+words = ["apple", "banana", "cherry", "date", "elderberry"]
+long_words = [word for word in words if len(word) > 5]
+print(long_words)   # ['banana', 'cherry', 'elderberry']
+
+# Convert and filter: convert strings to int, keep only positive
+string_numbers = ["-5", "10", "-3", "7", "0"]
+positive_ints = [int(s) for s in string_numbers if int(s) > 0]
+print(positive_ints) # [10, 7]
+```
+
+### Combining Transformation and Filtering
+
+```python
+# Square only the positive numbers
+numbers = [-3, -1, 0, 2, 4, 5]
+squared_positives = [x ** 2 for x in numbers if x > 0]
+print(squared_positives)  # [4, 16, 25]
+
+# Convert temperatures to Fahrenheit, but only those above 0°C
+celsius = [-10, 0, 15, 20, 25]
+fahrenheit_warm = [(c * 9/5) + 32 for c in celsius if c > 0]
+print(fahrenheit_warm)    # [59.0, 68.0, 77.0]
+```
+
+### Real-World Use Case: Cleaning Sensor Data
+
+This is exactly the problem you'll face in **Exercise 1 (Messy Sensor Data Cleaner)**:
+
+```python
+# Raw sensor readings (mix of valid strings and corrupted values)
+raw_data = ["22.5", "invalid", "23.1", "error_reading", "21.8"]
+
+# Extract valid floats
+valid_readings = []
+for value in raw_data:
+    try:
+        valid_readings.append(float(value))
+    except ValueError:
+        continue
+
+print(valid_readings)  # [22.5, 23.1, 21.8]
+```
+
+You can't write this as a simple list comprehension because of the `try/except`, but understanding the pattern helps you write the loop efficiently:
+
+```python
+# Alternative: without list comprehension (more verbose, but same idea)
+valid_readings = [float(value) for value in raw_data if <can_convert>]
+# But since Python doesn't have a simple "can_convert" check, you need a loop with try/except
+```
+
+### When to Use List Comprehensions vs. Loops
+
+| Use Case | Tool | Example |
+|----------|------|---------|
+| Simple transformation | List comprehension | `[x * 2 for x in numbers]` |
+| Simple filtering | List comprehension | `[x for x in numbers if x > 0]` |
+| Transformation + filtering | List comprehension | `[x ** 2 for x in numbers if x > 0]` |
+| Complex logic with `try/except` | `for` loop | Sensor data validation with error handling |
+| Multiple operations per item | `for` loop | Multi-step processing |
+| Side effects (printing, logging) | `for` loop | Logging each iteration |
+
+### Common Mistakes
+
+```python
+# ❌ MISTAKE: Using transformation and filtering in the wrong order
+numbers = [1, 2, 3, 4, 5]
+result = [x * 2 if x > 3 for x in numbers]  # SyntaxError!
+
+# ✓ CORRECT: Put the if at the END (for filtering)
+result = [x * 2 for x in numbers if x > 3]   # [8, 10]
+
+# ❌ MISTAKE: Using if/else (conditional expression) incorrectly
+# This applies a conditional to EVERY item, not just filtered ones
+result = [x * 2 if x > 3 else x for x in numbers]  # [1, 2, 3, 8, 10]
+
+# ✓ CORRECT: if/else is for replacing values based on a condition
+result = [x * 2 if x > 3 else x / 2 for x in numbers]  # [0.5, 1, 1.5, 8, 10]
+```
+
+### Performance Note
+
+List comprehensions are **faster** than equivalent `for` loops because they are optimized by Python. For most use cases, prefer list comprehensions over loops when they're readable:
+
+```python
+# Fast and readable
+squares = [x ** 2 for x in range(1000)]
+
+# Slower and more verbose
+squares = []
+for x in range(1000):
+    squares.append(x ** 2)
+```
+
+---
+
+## 9. Putting It All Together: Defensive Programming Patterns
 
 The exercises in this session combine all of the above concepts into **defensive programs** — programs that never crash, no matter what the user types. Here is the general pattern you'll use repeatedly:
 
