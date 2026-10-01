@@ -23,13 +23,13 @@ Python data types are commonly grouped into two categories.
 
 **Primitive (basic) types** hold a **single, simple value**. They are the basic building blocks of data:
 
-| Type | Example |
-|------|---------|
-| `int` | `42` |
-| `float` | `3.14` |
-| `str` | `"hello"` |
-| `bool` | `True` |
-| `NoneType` | `None` |
+| Type | Example | Immutable? | Description |
+|------|---------|-----------|-------------|
+| `int` | `42` | Yes | Whole numbers (can be used as dict keys) |
+| `float` | `3.14` | Yes | Decimal numbers (can be used as dict keys) |
+| `str` | `"hello"` | Yes | Text strings (can be used as dict keys) |
+| `bool` | `True` | Yes | Logical values: `True` or `False` |
+| `NoneType` | `None` | Yes | Represents "no value" or "empty" |
 
 **Non-primitive (collection) types** are built from other values and can hold **multiple items** at once:
 
@@ -44,6 +44,8 @@ Python data types are commonly grouped into two categories.
 # Primitive: one value per variable
 age = 25
 name = "Ana"
+is_student = True
+no_value = None
 
 # Non-primitive: one variable holds many values
 scores = [90, 85, 77]
@@ -56,9 +58,67 @@ student["age"] = 26       # dicts can be changed too
 **Key differences:**
 
 - **Number of values:** a primitive holds one value; a non-primitive is a container for many.
-- **Mutability:** primitives are **immutable**, so any "change" creates a new value. Most non-primitives (`list`, `dict`, `set`) are **mutable** and can be modified in place. The exception is `tuple`, which is immutable.
+- **Immutability:** primitives are **immutable**, meaning once created, they cannot be changed in-place. Any "change" creates a new value. Most non-primitives (`list`, `dict`, `set`) are **mutable** and can be modified after creation. The exception is `tuple`, which is immutable.
+- **Memory representation:** primitives store a single value directly. Non-primitives store references to multiple values in memory.
 
 > **Note:** Python itself doesn't formally use the terms "primitive" and "non-primitive". Unlike languages such as Java, *everything* in Python is an object, including integers. The distinction is a helpful way to think about simple values versus collections of values.
+
+#### Why This Matters: Primitive Types as Dictionary Keys
+
+Since dictionaries require keys to be **hashable** (immutable), only primitive types can be used as keys:
+
+```python
+# Primitives CAN be dictionary keys
+scores = {
+    1: "Alice's score",
+    2: "Bob's score", 
+    3: "Charlie's score"
+}
+
+lookup = {
+    (1, 2): "point A",       # tuple of primitives is OK
+    "name": "Alice",          # string keys are common
+    None: "empty value",      # None is allowed
+    3.14: "pi value"          # float is allowed
+}
+
+print(scores[1])             # "Alice's score" (1 is an integer key, not index 1!)
+print(scores.get(1))         # Same result: "Alice's score"
+print(scores.get(0))         # None (key 0 doesn't exist)
+```
+
+**Important:** When using integers as dictionary keys, remember they are **labels**, not positions like in lists:
+
+```python
+my_dict = {100: "value1", 200: "value2"}
+print(my_dict[100])    # Works: "value1" (accessing by key, not index)
+print(my_dict[0])      # KeyError! There is no key 0, even though the dict has 2 items
+
+# Different types as keys are treated as different keys
+numbers = {1: "integer one", "1": "string one"}
+print(numbers[1])      # "integer one" (int key)
+print(numbers["1"])    # "string one" (str key)
+```
+
+#### Immutability in Detail
+
+When we say primitives are immutable, we mean:
+
+```python
+# Primitives: any "modification" creates a new value
+x = 10
+y = x           # y points to the same value 10
+x = 20          # x now points to a new value; y is still 10
+print(y)        # 10 (y did NOT change)
+
+# Non-primitives: modifications happen in-place
+list1 = [1, 2, 3]
+list2 = list1
+list1.append(4)
+print(list2)    # [1, 2, 3, 4] (list2 CHANGED because it's the same object!)
+```
+
+This is why only immutable types can be dict keys — their identity never changes.
 
 ### Collection Types in Detail
 
@@ -178,63 +238,173 @@ message = "Your score is " + str(score)
 
 ### When Conversion Fails
 
-Not every value can be converted to every type. This is a very common source of errors. Here are the main ones:
+Not every value can be converted to every type. This is a very common source of errors. Understanding these errors is crucial for writing defensive programs. Here are the main ones:
 
-#### `ValueError`: The value's format is wrong
+#### `ValueError`: The value's *format* is wrong
 
-Raised when the *format* of the input doesn't match what the function expects:
+**When it happens:** The function receives the correct *type*, but the value's format doesn't match what's expected.
 
 ```python
+# String to int: format must be a valid integer
 int("hello")           # ValueError: invalid literal for int() with base 10: 'hello'
 int("12.5")            # ValueError: invalid literal for int() with base 10: '12.5'
+int("")                # ValueError: invalid literal for int() with base 10: ''
+
+# String to float: format must be valid for floating-point
 float("1.2.3")         # ValueError: could not convert string to float: '1.2.3'
-bool("false")          # bool("false") returns True! ("false" is a non-empty string)
+float("abc")           # ValueError: could not convert string to float: 'abc'
+
+# Empty strings fail
+float("")              # ValueError: could not convert string to float: ''
 ```
 
-> **Note:** `bool()` is tricky. It converts *any* value to a boolean based on "truthiness":
-> - Falsy: `False`, `0`, `0.0`, `""`, `[]`, `{}`, `set()`, `None`
-> - Truthy: everything else (including `"false"`, `"0"`, `[0]`)
->
-> So `bool("false")` is `True`. Use the string `"True"` or `"False"` with `ast.literal_eval()` if you need to parse a boolean from a string.
+**Example:** You're reading sensor data from a CSV file and some values are corrupted:
+
+```python
+# This is real-world data
+sensor_values = ["22.5", "23.1", "error_reading", "21.8"]
+
+for value in sensor_values:
+    try:
+        temp = float(value)
+        print(f"Valid temperature: {temp}°C")
+    except ValueError:
+        print(f"Skipping corrupted value: '{value}'")
+        # Output:
+        # Valid temperature: 22.5°C
+        # Valid temperature: 23.1°C
+        # Skipping corrupted value: 'error_reading'
+        # Valid temperature: 21.8°C
+```
 
 #### `TypeError`: The type itself is incompatible
 
-Raised when you try to convert a type that Python can't convert, no matter what:
+**When it happens:** You're trying to convert a type that the function simply cannot accept, no matter what the value is.
 
 ```python
+# None cannot be converted to int or float
 int(None)              # TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
 float(None)            # TypeError: float() argument must be a string or a number, not 'NoneType'
+
+# Collections (list, dict) cannot be converted to numeric types
 int([1, 2, 3])         # TypeError: int() argument must be a string, a bytes-like object or a number, not 'list'
 int({"a": 1})          # TypeError: int() argument must be a string, a bytes-like object or a number, not 'dict'
-str({"a": 1})          # This works, but gives a string representation: "{'a': 1}"
+
+# But you CAN convert collections to strings (you get their string representation)
+str([1, 2, 3])         # "[1, 2, 3]" (works, but gives a string representation)
+str({"a": 1})          # "{'a': 1}"
 ```
 
-#### Tricky cases
+**Example:** Reading user input that might be a list instead of a single value:
 
 ```python
-int(True)              # 1: booleans are integers
-int(False)             # 0
-int(3.99)              # 3: truncates (doesn't round) toward zero
-float("inf")           # inf: special floating-point value
-int(float("inf"))      # OverflowError: cannot convert float infinity to integer
+def get_numeric_value(data):
+    try:
+        return float(data)
+    except ValueError:
+        print("Error: Invalid number format")
+    except TypeError:
+        print("Error: Expected a string or number, got an incompatible type")
+
+get_numeric_value("25.5")      # Returns 25.5
+get_numeric_value("abc")       # Error: Invalid number format
+get_numeric_value(None)        # Error: Expected a string or number, got an incompatible type
+get_numeric_value([1, 2])      # Error: Expected a string or number, got an incompatible type
 ```
 
-#### Summary table
+#### `ZeroDivisionError`: Division by zero
 
-| Conversion | Success | Failure |
-|---|---|---|
-| `int("123")` | `123` | — |
-| `int("12.5")` | — | `ValueError` (no decimals allowed) |
-| `int("hello")` | — | `ValueError` (invalid format) |
-| `int(None)` | — | `TypeError` (incompatible type) |
-| `float("3.14")` | `3.14` | — |
-| `float("12x")` | — | `ValueError` |
-| `float(None)` | — | `TypeError` |
-| `str(100)` | `"100"` | — |
-| `str(None)` | `"None"` | — |
-| `bool("anything")` | `True` (if non-empty) | — (doesn't fail; uses truthiness) |
+**When it happens:** You try to divide a number by zero.
 
->> Go to the **Exercise 1 (Messy Sensor Data Cleaner)**, you will handle exactly this problem: a list containing values that may or may not be convertible to `float`. You'll use `try/except` to catch `ValueError` and `TypeError`.
+```python
+10 / 0                 # ZeroDivisionError: division by zero
+10 // 0                # ZeroDivisionError: integer division or modulo by zero
+10 % 0                 # ZeroDivisionError: integer division or modulo by zero
+```
+
+**Example:** A function that might receive zero as input:
+
+```python
+def calculate_average(total, count):
+    try:
+        return total / count
+    except ZeroDivisionError:
+        print("Error: Cannot calculate average of 0 items")
+        return None
+
+calculate_average(100, 5)      # 20.0 (works)
+calculate_average(100, 0)      # Error: Cannot calculate average of 0 items
+```
+
+#### `OverflowError`: Value too large to represent
+
+**When it happens:** You convert a value that's too extreme for the target type to handle.
+
+```python
+int(float("inf"))      # OverflowError: cannot convert float infinity to integer
+int(float("-inf"))     # OverflowError: cannot convert float -infinity to integer
+```
+
+#### Special Case: `bool()` Conversion
+
+**The `bool()` function is unique** — it doesn't fail. It converts *any* value to a boolean based on "truthiness":
+
+- **Falsy values** (convert to `False`): `False`, `0`, `0.0`, `""` (empty string), `[]` (empty list), `{}` (empty dict), `set()`, `None`
+- **Truthy values** (convert to `True`): Everything else, including `"false"` (non-empty string), `"0"` (non-empty string), `[0]` (non-empty list)
+
+```python
+bool("false")          # True! The string "false" is non-empty, so it's truthy
+bool("0")              # True! The string "0" is non-empty
+bool(0)                # False (the number 0 is falsy)
+bool([0])              # True (a list with one item is non-empty, so truthy)
+
+# If you need to parse a boolean from a string, use ast.literal_eval():
+import ast
+ast.literal_eval("False")  # False (the actual boolean)
+ast.literal_eval("True")   # True (the actual boolean)
+```
+
+#### Catching Multiple Error Types
+
+In many real-world scenarios, multiple errors can occur, and you want to handle them differently:
+
+```python
+user_input = input("Enter a number: ")
+
+try:
+    # This line might raise ValueError (bad format) or TypeError (wrong type)
+    result = float(user_input)
+    
+    # This line might raise ZeroDivisionError
+    final = 100 / result
+    
+except ValueError:
+    print("Error: That's not a valid number. Please enter digits only.")
+except ZeroDivisionError:
+    print("Error: Cannot divide by zero.")
+except TypeError:
+    print("Error: Unexpected data type.")
+```
+
+#### Summary table: Common Conversion Scenarios
+
+| Conversion | Success | Error Type | Reason |
+|---|---|---|---|
+| `int("123")` | `123` | — | — |
+| `int("12.5")` | — | `ValueError` | `int()` doesn't accept decimal strings |
+| `int("hello")` | — | `ValueError` | Not a valid number format |
+| `int(None)` | — | `TypeError` | `None` is incompatible with `int()` |
+| `int([1, 2])` | — | `TypeError` | Lists cannot be converted to int |
+| `float("3.14")` | `3.14` | — | — |
+| `float("12x")` | — | `ValueError` | Invalid float format |
+| `float(None)` | — | `TypeError` | `None` is incompatible with `float()` |
+| `10 / 0` | — | `ZeroDivisionError` | Cannot divide by zero |
+| `str(100)` | `"100"` | — | — |
+| `str(None)` | `"None"` | — | — |
+| `bool("anything")` | `True` | — | Non-empty strings are always truthy |
+| `bool("")` | `False` | — | Empty strings are falsy |
+
+>> Go to the **Exercise 1 (Messy Sensor Data Cleaner)**, you will handle exactly this problem: a list containing values that may or may not be convertible to `float`. You'll use `try/except` to catch `ValueError` and `TypeError`. This is a realistic scenario you'll encounter in data processing work.
 
 ---
 
@@ -484,6 +654,31 @@ def calculate_total(price, tax_rate=0.21):
 print(f"Total: {calculate_total(100)}")     # 121.0
 print(f"Total: {calculate_total(250)}")     # 302.5
 ```
+
+### Function Explanations: Always Include Parameter Types
+
+When explaining or documenting a function, **always include the data type for each parameter** in the function signature. If no type is explicitly written in the code, note whether it's a default type or "any".
+
+```python
+# Example function with type hints
+
+def calculate_total(price: float, tax_rate: float = 0.21) -> float:
+    """Calculate the total price including tax."""
+    tax = price * tax_rate
+    return round(price + tax, 2)
+```
+
+**How to read this:**
+- **`price: float`** — parameter `price` expects type `float`
+- **`tax_rate: float = 0.21`** — parameter `tax_rate` expects type `float`, with default value `0.21`
+- **`-> float`** — the function returns type `float`
+
+When explaining functions without explicit type hints, always specify:
+- What type each parameter expects (or if it accepts `any` type)
+- Whether a parameter has a default value and what type that default is
+- What type the function returns (or if it returns `None`)
+
+This practice helps you understand what kind of data each function expects and what it will return.
 
 > Go to the **Exercise 5 (Universal Unit Converter)**, you will design an entire program organized around multiple functions.
 
