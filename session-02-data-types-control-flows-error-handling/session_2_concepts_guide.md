@@ -5,6 +5,7 @@ This guide covers the core Python concepts you will apply throughout the Session
 
 ---
 
+
 ## 1. Data Types and Type Conversion
 
 Every value in Python has a **type**. The most common built-in types you'll work with are:
